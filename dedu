@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEDU FIX - 12 PAISES + GUARDAR</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,Arial}body{margin:0;background:#0f172a;color:#fff;padding:14px}
+h1{text-align:center;font-size:22px;margin:6px 0 2px}h3{margin:14px 0 6px}
+.card{background:#1e293b;border-radius:14px;padding:12px;margin:10px 0}
+label{font-size:13px;color:#cbd5e1}input,select{width:100%;padding:10px;border-radius:10px;border:0;margin:4px 0 10px;background:#0f172a;color:#fff;border:1px solid #334155}
+button{width:100%;padding:12px;border:0;border-radius:12px;font-weight:800;margin:6px 0;cursor:pointer}
+.b1{background:#22c55e}.b2{background:#3b82f6;color:#fff}.b3{background:#f59e0b}.b4{background:#a855f7;color:#fff}.b5{background:#ef4444;color:#fff}
+.res{background:#020617;border-radius:10px;padding:10px;white-space:pre-wrap;font-size:14px;line-height:1.5;min-height:60px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.small{font-size:12px;color:#94a3b8;text-align:center}
+</style>
+</head>
+<body>
+<div id="captura">
+<h1>DEDU FIX - 12 PAÍSES</h1>
+<p class="small">V9 - IVA + IRPF + GUARDAR</p>
+
+<div class="card">
+<h3>🌎 PAÍS / MONEDA</h3>
+<label>País</label>
+<select id="pais" onchange="cambiarPais()">
+<option value="UY|22|UYU $">🇺🇾 Uruguay - 22% - UYU $</option>
+<option value="AR|21|ARS $">🇦🇷 Argentina - 21% - ARS $</option>
+<option value="CL|19|CLP $">🇨🇱 Chile - 19% - CLP $</option>
+<option value="BR|17|BRL R$">🇧🇷 Brasil - 17% - BRL R$</option>
+<option value="PY|10|PYG ₲">🇵🇾 Paraguay - 10% - PYG ₲</option>
+<option value="PE|18|PEN S/">🇵🇪 Perú - 18% - PEN S/</option>
+<option value="CO|19|COP $">🇨🇴 Colombia - 19% - COP $</option>
+<option value="MX|16|MXN $">🇲🇽 México - 16% - MXN $</option>
+<option value="ES|21|EUR €">🇪🇸 España - 21% - EUR €</option>
+<option value="BO|13|BOB Bs">🇧🇴 Bolivia - 13% - BOB Bs</option>
+<option value="EC|12|USD $">🇪🇨 Ecuador - 12% - USD $</option>
+<option value="US|0|USD $">🇺🇸 USA - 0% - USD $</option>
+</select>
+<label>IVA % (editable)</label>
+<input id="iva" type="number" value="22">
+<label>Moneda</label>
+<input id="moneda" value="UYU $">
+</div>
+
+<div class="card">
+<h3>PARTE 1 - SOLO IVA</h3>
+<div class="row">
+<button class="b1" onclick="setTipo('TE PAGAN')">TE PAGAN</button>
+<button class="b5" onclick="setTipo('VOS PAGAS')">VOS PAGAS</button>
+</div>
+<p class="small" id="tipoTxt">Tipo: TE PAGAN</p>
+<label>Monto con IVA / sin IVA</label>
+<input id="montoIVA" type="number" placeholder="Ej: 10000">
+<label>Deducción % (0-100)</label>
+<input id="deduc" type="number" value="0">
+<button class="b1" onclick="calcIVA()">CALCULAR SOLO IVA</button>
+<div class="res" id="resIVA">Esperando...</div>
+</div>
+
+<div class="card">
+<h3>PARTE 2 - SOLO IRPF</h3>
+<label>Nominal / Ingreso</label>
+<input id="nominal" type="number" placeholder="Ej: 60000">
+<label>Hijos (0,1,2+)</label>
+<select id="hijos"><option value="0">0 hijos</option><option value="1">1 hijo</option><option value="2">2 o más</option></select>
+<label>Tipo IRPF % (editable)</label>
+<input id="irpfPct" type="number" value="10">
+<button class="b2" onclick="calcIRPF()">CALCULAR SOLO IRPF</button>
+<div class="res" id="resIRPF">Esperando...</div>
+</div>
+
+<div class="card">
+<h3>TODO JUNTO - IVA + IRPF</h3>
+<button class="b3" onclick="calcTodo()">CALCULAR TODO</button>
+<div class="res" id="resTodo">Esperando...</div>
+</div>
+</div>
+
+<div class="card">
+<h3>💾 GUARDAR / COMPARTIR</h3>
+<button class="b4" onclick="capturaPNG()">📸 CAPTURA - Bajar PNG</button>
+<button class="b2" onclick="bajarJSON()">💾 ARCHIVO - Bajar .json</button>
+<label>📂 CARGAR - Subir .json</label>
+<input type="file" id="fileJson" accept=".json" onchange="cargarJSON(event)">
+<button class="b1" onclick="mandarWA()">📤 WHATSAPP - Mandar resumen</button>
+</div>
+
+<script>
+let tipo="TE PAGAN";
+function cambiarPais(){
+  let v=document.getElementById('pais').value.split('|');
+  document.getElementById('iva').value=v[1];
+  document.getElementById('moneda').value=v[2];
+}
+function setTipo(t){tipo=t;document.getElementById('tipoTxt').innerText="Tipo: "+t;}
+function fmt(n){return Number(n).toLocaleString('es-UY',{maximumFractionDigits:2});}
+function getDatos(){
+  return {pais:document.getElementById('pais').value,iva:document.getElementById('iva').value,moneda:document.getElementById('moneda').value,montoIVA:document.getElementById('montoIVA').value,deduc:document.getElementById('deduc').value,nominal:document.getElementById('nominal').value,hijos:document.getElementById('hijos').value,irpfPct:document.getElementById('irpfPct').value,tipo:tipo};
+}
+function calcIVA(){
+  let m=parseFloat(document.getElementById('montoIVA').value||0);
+  let iva=parseFloat(document.getElementById('iva').value||0)/100;
+  let ded=parseFloat(document.getElementById('deduc').value||0)/100;
+  let mon=document.getElementById('moneda').value;
+  let pais=document.getElementById('pais').value.split('|')[0];
+  let sinIVA, conIVA, ivaMonto, deducMonto, neto;
+  if(tipo=="TE PAGAN"){ sinIVA=m/(1+iva); ivaMonto=m-sinIVA; conIVA=m; }
+  else{ sinIVA=m; ivaMonto=m*iva; conIVA=m+ivaMonto; }
+  deducMonto=ivaMonto*ded; neto=ivaMonto-deducMonto;
+  let txt=`PAIS: ${pais}\nTIPO: ${tipo}\nMONEDA: ${mon}\nMONTO: ${mon} ${fmt(m)}\nSIN IVA: ${mon} ${fmt(sinIVA)}\nIVA (${(iva*100).toFixed(0)}%): ${mon} ${fmt(ivaMonto)}\nDEDUCCION (${(ded*100).toFixed(0)}%): -${mon} ${fmt(deducMonto)}\nIVA A PAGAR: ${mon} ${fmt(neto)}\nCON IVA: ${mon} ${fmt(conIVA)}`;
+  document.getElementById('resIVA').innerText=txt;
+  return txt;
+}
+function calcIRPF(){
+  let nom=parseFloat(document.getElementById('nominal').value||0);
+  let pct=parseFloat(document.getElementById('irpfPct').value||0);
+  let hijos=document.getElementById('hijos').value;
+  let desc = hijos=="0"?0: hijos=="1"? 1500 : 3000;
+  let base=Math.max(0,nom-desc);
+  let irpf=base*pct/100;
+  let liquido=nom-irpf;
+  let mon=document.getElementById('moneda').value;
+  let txt=`NOMINAL: ${mon} ${fmt(nom)}\nHIJOS: ${hijos} (desc: ${mon} ${fmt(desc)})\nBASE: ${mon} ${fmt(base)}\nIRPF (${pct}%): -${mon} ${fmt(irpf)}\nLIQUIDO: ${mon} ${fmt(liquido)}`;
+  document.getElementById('resIRPF').innerText=txt;
+  return txt;
+}
+function calcTodo(){
+  let a=calcIVA(); let b=calcIRPF();
+  document.getElementById('resTodo').innerText=a+"\n---\n"+b;
+}
+function bajarJSON(){
+  let d=getDatos(); d.resIVA=document.getElementById('resIVA').innerText; d.resIRPF=document.getElementById('resIRPF').innerText; d.resTodo=document.getElementById('resTodo').innerText;
+  let blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dedu-v9.json'; a.click();
+}
+function cargarJSON(e){
+  let f=e.target.files[0]; if(!f) return;
+  let r=new FileReader(); r.onload=function(){ let d=JSON.parse(r.result);
+    if(d.pais) document.getElementById('pais').value=d.pais;
+    if(d.iva) document.getElementById('iva').value=d.iva;
+    if(d.moneda) document.getElementById('moneda').value=d.moneda;
+    if(d.montoIVA) document.getElementById('montoIVA').value=d.montoIVA;
+    if(d.deduc) document.getElementById('deduc').value=d.deduc;
+    if(d.nominal) document.getElementById('nominal').value=d.nominal;
+    if(d.hijos) document.getElementById('hijos').value=d.hijos;
+    if(d.irpfPct) document.getElementById('irpfPct').value=d.irpfPct;
+    if(d.tipo) setTipo(d.tipo);
+    if(d.resIVA) document.getElementById('resIVA').innerText=d.resIVA;
+    if(d.resIRPF) document.getElementById('resIRPF').innerText=d.resIRPF;
+    if(d.resTodo) document.getElementById('resTodo').innerText=d.resTodo;
+    alert('Cargado!');
+  }; r.readAsText(f);
+}
+function mandarWA(){
+  calcTodo();
+  let txt="DEDU V9\n"+document.getElementById('resTodo').innerText;
+  window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");
+}
+function capturaPNG(){
+  // Captura simple con canvas
+  let txt=document.getElementById('captura').innerText;
+  let c=document.createElement('canvas'); c.width=800; c.height=1100;
+  let ctx=c.getContext('2d'); ctx.fillStyle='white'; ctx.fillRect(0,0,800,1100);
+  ctx.fillStyle='black'; ctx.font='16px Arial';
+  let lines=txt.split('\n'); let y=30;
+  lines.forEach(l=>{ ctx.fillText(l.substring(0,95),20,y); y+=22; if(y>1080) return; });
+  let a=document.createElement('a'); a.download='dedu-captura.png'; a.href=c.toDataURL('image/png'); a.click();
+}
+</script>
+</body>
+</html>
